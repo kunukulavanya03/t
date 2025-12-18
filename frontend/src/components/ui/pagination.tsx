@@ -7,6 +7,7 @@ import {
 
 import { cn } from "./utils";
 import { Button, buttonVariants } from "./button";
+import { PATHS, getAppPath, getApiPath } from '../constants/paths';
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
