@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "./utils";
+import { logout, createRegister, login, createLogin, deleteData{id}, createPassword_reset, updateData{id}, getData, createData, register } from './services/api';
 
 function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
