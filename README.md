@@ -45,21 +45,20 @@ cd backend
 
 - User registration
 - User login
-- Task creation
-- Task listing
-- Task updating
-- Task deletion
 - Password reset
+- Data creation
+- Data updating
+- Data deletion
 
 ## API Endpoints
 
-- `POST /api/register` - Create a new user account
-- `POST /api/login` - Log in to an existing user account
-- `POST /api/tasks` - Create a new task
-- `GET /api/tasks` - Get all tasks for the current user
-- `PUT /api/tasks/{task_id}` - Update a task
-- `DELETE /api/tasks/{task_id}` - Delete a task
-- `POST /api/password_reset` - Request a password reset
+- `POST /api/register` - Register a new user
+- `POST /api/login` - Login an existing user
+- `POST /api/password_reset` - Reset a user's password
+- `GET /api/data` - Get a list of user's data
+- `POST /api/data` - Create new data
+- `PUT /api/data/{id}` - Update existing data
+- `DELETE /api/data/{id}` - Delete existing data
 
 ## License
 
