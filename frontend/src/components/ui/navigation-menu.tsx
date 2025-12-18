@@ -4,6 +4,7 @@ import { cva } from "class-variance-authority@0.7.1";
 import { ChevronDownIcon } from "lucide-react@0.487.0";
 
 import { cn } from "./utils";
+import { PATHS, getAppPath, getApiPath } from '../constants/paths';
 
 function NavigationMenu({
   className,
