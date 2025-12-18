@@ -3,6 +3,7 @@ import { HomePage } from './components/HomePage';
 import { ProductDetails } from './components/ProductDetails';
 import { CartCheckout } from './components/CartCheckout';
 import { UserAccount } from './components/UserAccount';
+import { logout, createRegister, login, createLogin, deleteData{id}, createPassword_reset, updateData{id}, getData, createData, register } from './services/api';
 
 export type Product = {
   id: string;
