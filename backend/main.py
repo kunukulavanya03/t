@@ -1,23 +1,16 @@
-from fastapi import FastAPI, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
-import os
+import models
+import schemas
 from database import get_db, engine
-from models import Base, User
-from auth import verify_token, create_access_token, hash_password, verify_password
-from schemas import *
-import logging
-
-load_dotenv()
 
 # Create tables
-Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Backend_Api_For_T,_A_Platform_That_Provides_Features_For_Users_To_Manage_Their_Tasks_And_Activities._The_Api_Will_Be_Built_Using_Fastapi_And_Sqlalchemy,_And_Will_Be_Consumed_By_A_React_Frontend. API",
-    description="Complete backend API for backend_api_for_t,_a_platform_that_provides_features_for_users_to_manage_their_tasks_and_activities._the_api_will_be_built_using_fastapi_and_sqlalchemy,_and_will_be_consumed_by_a_react_frontend.",
+    title="Backend_Api_For_T API",
+    description="Generated from Impact Analysis specifications",
     version="1.0.0"
 )
 
@@ -30,165 +23,210 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-security = HTTPBearer()
-
-# Authentication dependency
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    user_id = verify_token(token)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return user_id
-
 @app.get("/")
-def read_root():
-    return {"message": "Welcome to Backend_Api_For_T,_A_Platform_That_Provides_Features_For_Users_To_Manage_Their_Tasks_And_Activities._The_Api_Will_Be_Built_Using_Fastapi_And_Sqlalchemy,_And_Will_Be_Consumed_By_A_React_Frontend. API", "status": "running"}
+def root():
+    return {
+        "message": "API is running",
+        "endpoints": 20,
+        "models": 7
+    }
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy", "service": "backend_api_for_t,_a_platform_that_provides_features_for_users_to_manage_their_tasks_and_activities._the_api_will_be_built_using_fastapi_and_sqlalchemy,_and_will_be_consumed_by_a_react_frontend."}
+def health():
+    return {"status": "healthy", "service": "backend_api_for_t"}
 
-# Authentication endpoints
-@app.post("/auth/register")
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    # Check if user exists
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create new user
-    hashed_password = hash_password(user_data.password)
-    new_user = User(
-        email=user_data.email,
-        username=user_data.username,
-        hashed_password=hashed_password
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    # Create access token
-    access_token = create_access_token(data={"sub": str(new_user.id)})
-    return {"access_token": access_token, "token_type": "bearer", "user_id": new_user.id}
+# Generated API endpoints
+@app.get("/users")
+def users(db: Session = Depends(get_db)):
+    # Get all items
+    items = db.query(models.Users).all()
+    return {"items": items, "total": len(items)}
 
-@app.post("/auth/login")
-def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_data.email).first()
-    if not user or not verify_password(user_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer", "user_id": user.id}
-
-# API endpoints
-# Items API endpoints
-@app.get("/api/items")
-def get_items(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
-    # Get all items for current user
-    try:
-        items = db.query(Item).filter(Item.owner_id == current_user).all()
-        return {"items": items, "total": len(items)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/items/{item_id}")
-def get_item(item_id: int, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
-    # Get specific item
-    try:
-        item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user).first()
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
-        return {"item": item}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/items")
-def create_item(item_data: ItemCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+@app.post("/users")
+def users(item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
     # Create new item
-    try:
-        new_item = Item(**item_data.dict(), owner_id=current_user)
-        db.add(new_item)
-        db.commit()
-        db.refresh(new_item)
-        return {"item": new_item, "message": "Item created successfully"}
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    new_item = models.Users(**item_data.dict())
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
 
-@app.put("/api/items/{item_id}")
-def update_item(item_id: int, item_data: ItemUpdate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
-    # Update existing item
-    try:
-        item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user).first()
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
-        
-        update_data = item_data.dict(exclude_unset=True)
-        for field, value in update_data.items():
-            setattr(item, field, value)
-        
-        db.commit()
-        db.refresh(item)
-        return {"item": item, "message": "Item updated successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/users/{id}")
+def users_id(id: int, db: Session = Depends(get_db)):
+    # Get single item by ID
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
 
-@app.delete("/api/items/{item_id}")
-def delete_item(item_id: int, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+@app.put("/users/{id}")
+def users_id(id: int, item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Update item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    for key, value in item_data.dict().items():
+        setattr(item, key, value)
+    
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/users/{id}")
+def users_id(id: int, db: Session = Depends(get_db)):
     # Delete item
-    try:
-        item = db.query(Item).filter(Item.id == item_id, Item.owner_id == current_user).first()
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
-        
-        db.delete(item)
-        db.commit()
-        return {"message": "Item deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    db.delete(item)
+    db.commit()
+    return {"message": "Item deleted successfully"}
 
-# User profile endpoints
-@app.get("/api/profile")
-def get_profile(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
-    # Get current user profile
-    try:
-        user = db.query(User).filter(User.id == current_user).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        return {"user": user}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/products")
+def products(db: Session = Depends(get_db)):
+    # Get all items
+    items = db.query(models.Users).all()
+    return {"items": items, "total": len(items)}
 
-@app.put("/api/profile")
-def update_profile(user_data: UserBase, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
-    # Update user profile
-    try:
-        user = db.query(User).filter(User.id == current_user).first()
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        user.email = user_data.email
-        user.username = user_data.username
-        user.updated_at = datetime.utcnow()
-        
-        db.commit()
-        db.refresh(user)
-        return {"user": user, "message": "Profile updated successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+@app.post("/products")
+def products(item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Create new item
+    new_item = models.Users(**item_data.dict())
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
+
+@app.get("/products/{id}")
+def products_id(id: int, db: Session = Depends(get_db)):
+    # Get single item by ID
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/products/{id}")
+def products_id(id: int, item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Update item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    for key, value in item_data.dict().items():
+        setattr(item, key, value)
+    
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/products/{id}")
+def products_id(id: int, db: Session = Depends(get_db)):
+    # Delete item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    db.delete(item)
+    db.commit()
+    return {"message": "Item deleted successfully"}
+
+@app.get("/orders")
+def orders(db: Session = Depends(get_db)):
+    # Get all items
+    items = db.query(models.Users).all()
+    return {"items": items, "total": len(items)}
+
+@app.post("/orders")
+def orders(item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Create new item
+    new_item = models.Users(**item_data.dict())
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
+
+@app.get("/orders/{id}")
+def orders_id(id: int, db: Session = Depends(get_db)):
+    # Get single item by ID
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/orders/{id}")
+def orders_id(id: int, item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Update item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    for key, value in item_data.dict().items():
+        setattr(item, key, value)
+    
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/orders/{id}")
+def orders_id(id: int, db: Session = Depends(get_db)):
+    # Delete item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    db.delete(item)
+    db.commit()
+    return {"message": "Item deleted successfully"}
+
+@app.get("/payments")
+def payments(db: Session = Depends(get_db)):
+    # Get all items
+    items = db.query(models.Users).all()
+    return {"items": items, "total": len(items)}
+
+@app.post("/payments")
+def payments(item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Create new item
+    new_item = models.Users(**item_data.dict())
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
+
+@app.get("/payments/{id}")
+def payments_id(id: int, db: Session = Depends(get_db)):
+    # Get single item by ID
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/payments/{id}")
+def payments_id(id: int, item_data: schemas.UsersCreate, db: Session = Depends(get_db)):
+    # Update item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    for key, value in item_data.dict().items():
+        setattr(item, key, value)
+    
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/payments/{id}")
+def payments_id(id: int, db: Session = Depends(get_db)):
+    # Delete item
+    item = db.query(models.Users).filter(models.Users.id == id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    
+    db.delete(item)
+    db.commit()
+    return {"message": "Item deleted successfully"}
 
 
 
